@@ -16,7 +16,10 @@ import {
   Clock,
   CheckCircle,
   DollarSign,
-  Star
+  Star,
+  BookOpen,
+  Play,
+  ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +83,74 @@ export const ArtisanPage = () => {
       unread: false,
     },
   ];
+
+  const mockTutorials = [
+    {
+      id: 1,
+      title: "Ceramic Vase Making",
+      description: "Learn to create a beautiful ceramic vase from clay to glazing",
+      difficulty: "Intermediate",
+      duration: "3-4 hours",
+      steps: [
+        "Prepare your clay by wedging to remove air bubbles",
+        "Center the clay on the potter's wheel",
+        "Open the clay using your thumbs or fingers",
+        "Pull up the walls slowly and evenly",
+        "Shape the vase form with steady pressure",
+        "Trim the bottom when leather-hard",
+        "Apply your chosen glaze after bisque firing",
+        "Fire to cone 6 for final result"
+      ],
+      tags: ["ceramics", "pottery", "wheel throwing"]
+    },
+    {
+      id: 2,
+      title: "Wooden Jewelry Box",
+      description: "Craft an elegant wooden jewelry box with compartments",
+      difficulty: "Advanced",
+      duration: "6-8 hours",
+      steps: [
+        "Select and prepare your wood (walnut or cherry recommended)",
+        "Cut pieces to size using precise measurements",
+        "Create dados and rabbets for joints",
+        "Sand all pieces starting with 120 grit, finish with 220",
+        "Dry fit all pieces before gluing",
+        "Apply wood glue and clamp securely",
+        "Route compartment grooves while wood is flat",
+        "Install hinges and add felt lining",
+        "Apply finish (Danish oil or polyurethane)"
+      ],
+      tags: ["woodworking", "joinery", "furniture"]
+    },
+    {
+      id: 3,
+      title: "Hand-Woven Scarf",
+      description: "Create a soft, colorful scarf using traditional weaving techniques",
+      difficulty: "Beginner",
+      duration: "2-3 hours",
+      steps: [
+        "Choose your yarn colors and calculate yardage needed",
+        "Set up your loom with the warp threads",
+        "Thread the heddles and reed properly",
+        "Begin weaving with your chosen pattern",
+        "Maintain consistent tension throughout",
+        "Change colors as desired for your design",
+        "Beat each row gently but firmly",
+        "Remove from loom and secure edges",
+        "Wet finish and block to measurements"
+      ],
+      tags: ["weaving", "textiles", "fiber arts"]
+    }
+  ];
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case "Beginner": return "bg-green-100 text-green-800";
+      case "Intermediate": return "bg-yellow-100 text-yellow-800";
+      case "Advanced": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,7 +332,7 @@ export const ArtisanPage = () => {
         </div>
 
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="orders" className="flex items-center">
               <Package className="h-4 w-4 mr-2" />
               Orders
@@ -269,6 +340,10 @@ export const ArtisanPage = () => {
             <TabsTrigger value="chats" className="flex items-center">
               <MessageSquare className="h-4 w-4 mr-2" />
               Messages
+            </TabsTrigger>
+            <TabsTrigger value="learn" className="flex items-center">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Learn
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center">
               <User className="h-4 w-4 mr-2" />
@@ -376,6 +451,92 @@ export const ArtisanPage = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="learn">
+            <div className="grid gap-6">
+              <Card className="bg-gradient-card border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <BookOpen className="h-5 w-5 mr-2 text-primary" />
+                    AI-Powered Craft Tutorials
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Learn step-by-step procedures for various crafts with AI-generated instructions
+                  </p>
+                </CardHeader>
+              </Card>
+
+              <div className="grid gap-4">
+                {mockTutorials.map((tutorial) => (
+                  <Card key={tutorial.id} className="bg-gradient-card border-0 hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold text-foreground mb-2">{tutorial.title}</h3>
+                          <p className="text-muted-foreground mb-3">{tutorial.description}</p>
+                          <div className="flex items-center gap-4 mb-4">
+                            <Badge className={getDifficultyColor(tutorial.difficulty)} variant="secondary">
+                              {tutorial.difficulty}
+                            </Badge>
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4 mr-1" />
+                              {tutorial.duration}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {tutorial.tags.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-xs">
+                                #{tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <Button className="ml-4 bg-gradient-primary border-0 shadow-primary">
+                          <Play className="h-4 w-4 mr-2" />
+                          Start Tutorial
+                        </Button>
+                      </div>
+                      
+                      <div className="bg-muted/30 rounded-lg p-4">
+                        <h4 className="font-semibold text-foreground mb-3 flex items-center">
+                          <ChevronRight className="h-4 w-4 mr-1" />
+                          Step-by-Step Procedure:
+                        </h4>
+                        <ol className="space-y-2">
+                          {tutorial.steps.slice(0, 3).map((step, index) => (
+                            <li key={index} className="flex items-start text-sm">
+                              <span className="inline-flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-semibold mr-3 mt-0.5 flex-shrink-0">
+                                {index + 1}
+                              </span>
+                              <span className="text-muted-foreground">{step}</span>
+                            </li>
+                          ))}
+                          {tutorial.steps.length > 3 && (
+                            <li className="flex items-center text-sm text-muted-foreground ml-9">
+                              <span>... and {tutorial.steps.length - 3} more steps</span>
+                            </li>
+                          )}
+                        </ol>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="bg-gradient-card border-0">
+                <CardContent className="p-6 text-center">
+                  <BookOpen className="h-12 w-12 mx-auto text-primary mb-3" />
+                  <h3 className="text-lg font-semibold mb-2">Request Custom Tutorial</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Need help with a specific craft technique? Our AI can generate personalized step-by-step instructions.
+                  </p>
+                  <Button className="bg-gradient-primary border-0 shadow-primary">
+                    Generate Custom Tutorial
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="profile">
