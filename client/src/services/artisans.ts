@@ -17,6 +17,9 @@ export interface Artisan {
     certifications?: string[];
     establishedYear?: number;
     responseTime?: string;
+    techniquesAndMaterials?: string;
+    customOrderPreferences?: string;
+    achievements?: string;
   };
   skills: {
     primaryCraft: string;

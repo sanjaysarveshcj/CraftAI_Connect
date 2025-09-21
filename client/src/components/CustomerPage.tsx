@@ -19,6 +19,7 @@ import { DesignResults } from './DesignResults';
 import { MessageCenter } from './MessageCenter';
 import { ArtisanProfile } from './ArtisanProfile';
 import { RoleGuard } from './RoleGuard';
+import { CustomerArtisansList } from './CustomerArtisansList';
 
 type ChatMessage = {
   id: number;
@@ -273,7 +274,7 @@ function CustomerPageContent() {
                     <div className="relative">
                       <div className="aspect-square bg-muted rounded-t-lg flex items-center justify-center overflow-hidden">
                         <img 
-                          src={product.images[0] || "/placeholder.svg"} 
+                          src={product.images && product.images.length > 0 ? product.images[0].url : "/placeholder.svg"} 
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         />
@@ -553,96 +554,8 @@ function CustomerPageContent() {
                 </TabsContent>
 
                 <TabsContent value="artisans" className="p-0 mt-0">
-                  <div className="h-96">
-                    {/* Artisans Header */}
-                    <div className="p-4 border-b">
-                      <h3 className="font-semibold flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-primary" />
-                        Nearby Artisans
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Connect with local craftspeople</p>
-                    </div>
-
-                    {/* Artisans List */}
-                    <div className="p-4 space-y-3 overflow-y-auto h-full">
-                      {artisansLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                          <span className="ml-2 text-sm">Loading artisans...</span>
-                        </div>
-                      ) : (
-                        <>
-                          {artisans.slice(0, 5).map((artisan) => (
-                            <Card
-                              key={artisan._id}
-                              className="transition-all duration-200 hover:shadow-md"
-                            >
-                              <CardContent className="p-3">
-                                <div className="flex items-start space-x-3">
-                                  <Avatar className="h-8 w-8 flex-shrink-0">
-                                    <AvatarImage src={artisan.user.profile?.avatar || "/placeholder.svg"} />
-                                    <AvatarFallback className="text-xs">
-                                      {artisan.user.name.split(" ").map(n => n[0]).join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm truncate">
-                                      {artisan.user.name}
-                                    </h4>
-                                    <p className="text-xs text-primary">
-                                      {artisan.skills.primaryCraft}
-                                    </p>
-                                    <div className="flex items-center mt-1">
-                                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                                      <span className="text-xs ml-1">{artisan.ratings.average}</span>
-                                      <span className="text-xs text-muted-foreground ml-2">
-                                        {artisan.location.city}, {artisan.location.state}
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {artisan.skills.specialties.slice(0, 2).map((specialty) => (
-                                        <Badge key={specialty} variant="outline" className="text-xs px-1 py-0">
-                                          {specialty}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex space-x-2 mt-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="flex-1 h-7 text-xs"
-                                    onClick={() => handleViewArtisanProfile(artisan)}
-                                  >
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    View Profile
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    className="flex-1 h-7 text-xs"
-                                    onClick={() => handleArtisanClick(artisan)}
-                                    disabled={startConversationMutation.isPending}
-                                  >
-                                    <MessageCircle className="h-3 w-3 mr-1" />
-                                    {startConversationMutation.isPending ? "Starting..." : "Contact"}
-                                    {!isAuthenticated && <Lock className="h-3 w-3 ml-1" />}
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                          
-                          {artisans.length === 0 && (
-                            <div className="text-center py-8">
-                              <p className="text-sm text-muted-foreground">
-                                No artisans found
-                              </p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                  <div className="h-[calc(100vh-12rem)]">
+                    <CustomerArtisansList />
                   </div>
                 </TabsContent>
               </Tabs>

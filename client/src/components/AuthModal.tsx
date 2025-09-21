@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArtisanProfessionalDetails } from '@/types/artisan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +18,7 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
   const { login, register, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const navigate = useNavigate();
 
   // Login form state
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -55,6 +58,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
     if (success) {
       onClose();
       setRegisterData({ name: '', email: '', password: '', confirmPassword: '', role: 'customer' });
+      
+      // If the user registered as an artisan, redirect to the artisan details form
+      if (registerData.role === 'artisan') {
+        navigate('/artisan/setup');
+      }
     }
   };
 

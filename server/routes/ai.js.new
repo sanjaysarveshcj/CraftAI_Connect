@@ -1,0 +1,45 @@
+// @route   POST /api/ai/artisan-story
+// @desc    Generate artisan story from profile details
+// @access  Private
+router.post('/artisan-story', authenticate, async (req, res) => {
+  try {
+    const { details } = req.body;
+
+    if (!details) {
+      return res.status(400).json({
+        success: false,
+        message: 'Artisan details are required'
+      });
+    }
+
+    // Use Gemini AI to generate story
+    const story = await geminiService.generateArtisanStory(details);
+
+    // Update artisan profile with generated story
+    const artisan = await Artisan.findOneAndUpdate(
+      { user: req.user._id },
+      { 
+        $set: {
+          'businessInfo.description': story,
+          ...details
+        }
+      },
+      { new: true }
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        story,
+        artisan
+      }
+    });
+
+  } catch (error) {
+    console.error('Error generating artisan story:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate artisan story'
+    });
+  }
+});

@@ -6,6 +6,7 @@ const Product = require('../models/Product');
 const Artisan = require('../models/Artisan');
 const { authenticate } = require('../middleware/auth');
 const geminiService = require('../services/geminiService');
+const stableDiffusionService = require('../services/stableDiffusionService');
 
 // @route   POST /api/ai/chat
 // @desc    Send message to AI assistant
@@ -111,7 +112,7 @@ router.get('/chat/:sessionId', authenticate, async (req, res) => {
 });
 
 // @route   POST /api/ai/generate-design
-// @desc    Generate AI design from text prompt
+// @desc    Generate AI design from text prompt using Stable Diffusion
 // @access  Private
 router.post('/generate-design', authenticate, async (req, res) => {
   try {
@@ -124,33 +125,54 @@ router.post('/generate-design', authenticate, async (req, res) => {
       });
     }
 
-    // Use Gemini AI to generate design
-    const designResult = await geminiService.generateDesign(prompt, style, category);
+    // Enhance the prompt with style if provided
+    let enhancedPrompt = prompt;
+    if (style) {
+      enhancedPrompt = `${style} style ${prompt}`;
+    }
 
-    // Optionally save design to database
+    // Generate image using Stable Diffusion
+    const imageUrl = await stableDiffusionService.generateImage(enhancedPrompt);
+
+    // Save design to database
     try {
       const aiDesign = new AIDesign({
         user: req.user._id,
         prompt: prompt,
         style: style || 'traditional',
         category: category || 'Art',
-        result: designResult,
+        generatedImageUrl: imageUrl,
         status: 'generated',
         generatedAt: new Date()
       });
 
       await aiDesign.save();
-      designResult._id = aiDesign._id; // Add database ID to result
+
+      res.json({
+        success: true,
+        data: {
+          _id: aiDesign._id,
+          imageUrl: imageUrl,
+          prompt: prompt,
+          style: style,
+          category: category
+        },
+        message: 'Design generated successfully!'
+      });
     } catch (dbError) {
       console.warn('Failed to save design to database:', dbError.message);
-      // Continue without failing the request
+      // Still return the generated image even if saving fails
+      res.json({
+        success: true,
+        data: {
+          imageUrl: imageUrl,
+          prompt: prompt,
+          style: style,
+          category: category
+        },
+        message: 'Design generated successfully!'
+      });
     }
-
-    res.json({
-      success: true,
-      data: designResult,
-      message: 'Design generated successfully!'
-    });
   } catch (error) {
     console.error('Generate design error:', error);
     res.status(500).json({

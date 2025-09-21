@@ -40,6 +40,102 @@ export const ArtisanPage = () => {
 const ArtisanPageContent = () => {
   const { user } = useAuth();
   const [showFullMessages, setShowFullMessages] = useState(false);
+
+  // Project upload form state
+
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    category: "Art",
+    subcategory: "",
+    imageFile: null,
+    basePrice: "",
+    currency: "USD",
+    priceType: "fixed",
+    dimensions: { length: "", width: "", height: "", unit: "cm" },
+    weight: { value: "", unit: "kg" },
+    materials: "",
+    colors: "",
+    finishes: "",
+    isCustomizable: false,
+    customOptions: "",
+    estimatedTime: "",
+    difficulty: "intermediate",
+    techniques: "",
+    tools: "",
+    inStock: true,
+    quantity: "1",
+    isUnique: true,
+    tags: "",
+    isActive: true,
+    isFeatured: false
+  });
+
+  const handleProductFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type, files, checked } = e.target as HTMLInputElement;
+    if (type === "file" && files && files.length > 0) {
+      setProductForm((prev) => ({ ...prev, imageFile: files[0] }));
+    } else if (type === "checkbox") {
+      setProductForm((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setProductForm((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleProjectFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type, files } = e.target as HTMLInputElement;
+    if (type === "file" && files && files.length > 0) {
+      setProductForm((prev) => ({ ...prev, imageFile: files[0] }));
+    } else {
+      setProductForm((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleProductUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.entries(productForm).forEach(([key, value]) => {
+      if (key === "imageFile" && value) {
+        formData.append("image", value as File);
+      } else if (typeof value === "object" && value !== null) {
+        // For nested objects like dimensions, weight
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          formData.append(`${key}.${subKey}`, subValue as string);
+        });
+      } else {
+        formData.append(key, value as string);
+      }
+    });
+    // TODO: Implement API call to upload product to products collection using formData
+    toast.success("Product uploaded (mock)");
+    setProductForm({
+      name: "",
+      description: "",
+      category: "Art",
+      subcategory: "",
+      imageFile: null,
+      basePrice: "",
+      currency: "USD",
+      priceType: "fixed",
+      dimensions: { length: "", width: "", height: "", unit: "cm" },
+      weight: { value: "", unit: "kg" },
+      materials: "",
+      colors: "",
+      finishes: "",
+      isCustomizable: false,
+      customOptions: "",
+      estimatedTime: "",
+      difficulty: "intermediate",
+      techniques: "",
+      tools: "",
+      inStock: true,
+      quantity: "1",
+      isUnique: true,
+      tags: "",
+      isActive: true,
+      isFeatured: false
+    });
+  };
   
   // Check artisan registration status
   const { data: statusData, isLoading: statusLoading, error: statusError } = useArtisanStatus();
@@ -460,9 +556,9 @@ const ArtisanPageContent = () => {
               <MessageSquare className="h-4 w-4 mr-2" />
               Messages
             </TabsTrigger>
-            <TabsTrigger value="learn" className="flex items-center">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Learn
+            <TabsTrigger value="product-upload" className="flex items-center">
+              <Palette className="h-4 w-4 mr-2" />
+              Product Upload
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center">
               <User className="h-4 w-4 mr-2" />
@@ -635,91 +731,133 @@ const ArtisanPageContent = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="learn">
-            <div className="grid gap-6">
-              <Card className="bg-gradient-card border-0">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                    AI-Powered Craft Tutorials
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Learn step-by-step procedures for various crafts with AI-generated instructions
-                  </p>
-                </CardHeader>
-              </Card>
-
-              <div className="grid gap-4">
-                {mockTutorials.map((tutorial) => (
-                  <Card key={tutorial.id} className="bg-gradient-card border-0 hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-foreground mb-2">{tutorial.title}</h3>
-                          <p className="text-muted-foreground mb-3">{tutorial.description}</p>
-                          <div className="flex items-center gap-4 mb-4">
-                            <Badge className={getDifficultyColor(tutorial.difficulty)} variant="secondary">
-                              {tutorial.difficulty}
-                            </Badge>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {tutorial.duration}
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {tutorial.tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                #{tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <Button className="ml-4 bg-gradient-primary border-0 shadow-primary">
-                          <Play className="h-4 w-4 mr-2" />
-                          Start Tutorial
-                        </Button>
-                      </div>
-                      
-                      <div className="bg-muted/30 rounded-lg p-4">
-                        <h4 className="font-semibold text-foreground mb-3 flex items-center">
-                          <ChevronRight className="h-4 w-4 mr-1" />
-                          Step-by-Step Procedure:
-                        </h4>
-                        <ol className="space-y-2">
-                          {tutorial.steps.slice(0, 3).map((step, index) => (
-                            <li key={index} className="flex items-start text-sm">
-                              <span className="inline-flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-semibold mr-3 mt-0.5 flex-shrink-0">
-                                {index + 1}
-                              </span>
-                              <span className="text-muted-foreground">{step}</span>
-                            </li>
-                          ))}
-                          {tutorial.steps.length > 3 && (
-                            <li className="flex items-center text-sm text-muted-foreground ml-9">
-                              <span>... and {tutorial.steps.length - 3} more steps</span>
-                            </li>
-                          )}
-                        </ol>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <Card className="bg-gradient-card border-0">
-                <CardContent className="p-6 text-center">
-                  <BookOpen className="h-12 w-12 mx-auto text-primary mb-3" />
-                  <h3 className="text-lg font-semibold mb-2">Request Custom Tutorial</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Need help with a specific craft technique? Our AI can generate personalized step-by-step instructions.
-                  </p>
-                  <Button className="bg-gradient-primary border-0 shadow-primary">
-                    Generate Custom Tutorial
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+          <TabsContent value="product-upload">
+            <Card className="bg-gradient-card border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Palette className="h-5 w-5 mr-2 text-primary" />
+                  Upload New Product
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Fill in all product details to market your products to customers.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleProductUpload}>
+                  <div>
+                    <Label htmlFor="name">Product Name</Label>
+                    <Input id="name" name="name" value={productForm.name} onChange={handleProductFormChange} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" value={productForm.description} onChange={handleProductFormChange} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input id="category" name="category" value={productForm.category} onChange={handleProductFormChange} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="subcategory">Subcategory</Label>
+                    <Input id="subcategory" name="subcategory" value={productForm.subcategory} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="image">Product Image</Label>
+                    <Input id="image" name="image" type="file" accept="image/*" onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="basePrice">Base Price</Label>
+                    <Input id="basePrice" name="basePrice" type="number" value={productForm.basePrice} onChange={handleProductFormChange} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="currency">Currency</Label>
+                    <Input id="currency" name="currency" value={productForm.currency} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="priceType">Price Type</Label>
+                    <Input id="priceType" name="priceType" value={productForm.priceType} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label>Dimensions (cm)</Label>
+                    <div className="flex gap-2">
+                      <Input name="length" placeholder="Length" value={productForm.dimensions.length} onChange={e => setProductForm(f => ({ ...f, dimensions: { ...f.dimensions, length: e.target.value } }))} />
+                      <Input name="width" placeholder="Width" value={productForm.dimensions.width} onChange={e => setProductForm(f => ({ ...f, dimensions: { ...f.dimensions, width: e.target.value } }))} />
+                      <Input name="height" placeholder="Height" value={productForm.dimensions.height} onChange={e => setProductForm(f => ({ ...f, dimensions: { ...f.dimensions, height: e.target.value } }))} />
+                      <Input name="unit" placeholder="Unit" value={productForm.dimensions.unit} onChange={e => setProductForm(f => ({ ...f, dimensions: { ...f.dimensions, unit: e.target.value } }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Weight</Label>
+                    <div className="flex gap-2">
+                      <Input name="value" placeholder="Value" value={productForm.weight.value} onChange={e => setProductForm(f => ({ ...f, weight: { ...f.weight, value: e.target.value } }))} />
+                      <Input name="unit" placeholder="Unit" value={productForm.weight.unit} onChange={e => setProductForm(f => ({ ...f, weight: { ...f.weight, unit: e.target.value } }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="materials">Materials (comma separated)</Label>
+                    <Input id="materials" name="materials" value={productForm.materials} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="colors">Colors (comma separated)</Label>
+                    <Input id="colors" name="colors" value={productForm.colors} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="finishes">Finishes (comma separated)</Label>
+                    <Input id="finishes" name="finishes" value={productForm.finishes} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="isCustomizable">Customizable</Label>
+                    <Input id="isCustomizable" name="isCustomizable" type="checkbox" checked={productForm.isCustomizable} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="customOptions">Custom Options (comma separated)</Label>
+                    <Input id="customOptions" name="customOptions" value={productForm.customOptions} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="estimatedTime">Estimated Production Time</Label>
+                    <Input id="estimatedTime" name="estimatedTime" value={productForm.estimatedTime} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="difficulty">Difficulty</Label>
+                    <Input id="difficulty" name="difficulty" value={productForm.difficulty} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="techniques">Techniques (comma separated)</Label>
+                    <Input id="techniques" name="techniques" value={productForm.techniques} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="tools">Tools (comma separated)</Label>
+                    <Input id="tools" name="tools" value={productForm.tools} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="inStock">In Stock</Label>
+                    <Input id="inStock" name="inStock" type="checkbox" checked={productForm.inStock} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input id="quantity" name="quantity" type="number" value={productForm.quantity} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="isUnique">Is Unique</Label>
+                    <Input id="isUnique" name="isUnique" type="checkbox" checked={productForm.isUnique} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="tags">Tags (comma separated)</Label>
+                    <Input id="tags" name="tags" value={productForm.tags} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="isActive">Active</Label>
+                    <Input id="isActive" name="isActive" type="checkbox" checked={productForm.isActive} onChange={handleProductFormChange} />
+                  </div>
+                  <div>
+                    <Label htmlFor="isFeatured">Featured</Label>
+                    <Input id="isFeatured" name="isFeatured" type="checkbox" checked={productForm.isFeatured} onChange={handleProductFormChange} />
+                  </div>
+                  <Button type="submit" className="bg-gradient-primary">Upload Product</Button>
+                </form>
+              </CardContent>
+            </Card>
           </TabsContent>
+          {/* Removed tutorial-related code. Tabs and JSX structure fixed. */}
 
           <TabsContent value="profile">
             <Card className="bg-gradient-card border-0">

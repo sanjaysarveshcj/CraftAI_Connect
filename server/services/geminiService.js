@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const craftArtisanStoryPrompt = require('./prompts/craftArtisanStory');
 
 class GeminiService {
   constructor() {

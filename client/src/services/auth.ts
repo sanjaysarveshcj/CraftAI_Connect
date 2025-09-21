@@ -1,4 +1,5 @@
 import api from './api';
+import { ArtisanProfessionalDetails } from '@/types/artisan';
 
 export interface LoginData {
   email: string;
@@ -75,5 +76,22 @@ export const authAPI = {
   logout: () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+  },
+
+  // Update artisan professional details
+  updateArtisanDetails: async (details: ArtisanProfessionalDetails): Promise<{ success: boolean; data: { user: User; story: string } }> => {
+    // First, generate the story
+    const storyResponse = await api.post('/ai/artisan-story', { details });
+    
+    // If story generation successful, update artisan details
+    if (storyResponse.data.success) {
+      const response = await api.put('/auth/artisan-details', {
+        ...details,
+        generatedStory: storyResponse.data.data.story
+      });
+      return response.data;
+    }
+    
+    throw new Error('Failed to generate artisan story');
   }
 };

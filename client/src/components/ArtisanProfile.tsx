@@ -210,53 +210,79 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
           <ScrollArea className="flex-1 p-6">
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* About */}
+                {/* Artisan Story */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <User className="h-5 w-5 mr-2" />
-                      About
+                      Artisan Story
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">
-                      {artisan.businessInfo.description || "No description available"}
+                    <p className="text-muted-foreground leading-relaxed">
+                      {artisan.businessInfo.description || "No story available"}
                     </p>
                   </CardContent>
                 </Card>
 
-                {/* Skills & Specialties */}
+                {/* Expertise */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Award className="h-5 w-5 mr-2" />
-                      Skills & Specialties
+                      Expertise & Specialties
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-medium mb-2">Primary Craft</h4>
-                        <Badge variant="default" className="text-sm">
-                          {artisan.skills.primaryCraft}
-                        </Badge>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <h4 className="font-medium mb-2">Primary Craft</h4>
+                      <Badge variant="default" className="text-sm">
+                        {artisan.skills.primaryCraft}
+                      </Badge>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Specialties</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {artisan.skills.specialties.map((specialty, index) => (
+                          <Badge key={index} variant="secondary">
+                            {specialty}
+                          </Badge>
+                        ))}
                       </div>
+                    </div>
+
+                    {artisan.businessInfo.techniquesAndMaterials && (
                       <div>
-                        <h4 className="font-medium mb-2">Specialties</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {artisan.skills.specialties.map((specialty, index) => (
-                            <Badge key={index} variant="secondary">
-                              {specialty}
-                            </Badge>
-                          ))}
-                        </div>
+                        <h4 className="font-medium mb-2">Techniques & Materials</h4>
+                        <p className="text-muted-foreground">
+                          {artisan.businessInfo.techniquesAndMaterials}
+                        </p>
                       </div>
+                    )}
+
+                    {artisan.businessInfo.customOrderPreferences && (
                       <div>
-                        <h4 className="font-medium mb-2">Experience Level</h4>
-                        <Badge variant="outline">
-                          {artisan.skills.experienceLevel}
-                        </Badge>
+                        <h4 className="font-medium mb-2">Custom Order Preferences</h4>
+                        <p className="text-muted-foreground">
+                          {artisan.businessInfo.customOrderPreferences}
+                        </p>
                       </div>
+                    )}
+
+                    {artisan.businessInfo.achievements && (
+                      <div>
+                        <h4 className="font-medium mb-2">Notable Achievements</h4>
+                        <p className="text-muted-foreground">
+                          {artisan.businessInfo.achievements}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <h4 className="font-medium mb-2">Experience Level</h4>
+                      <Badge variant="outline">
+                        {artisan.skills.experienceLevel}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -340,8 +366,16 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
                       <Card key={product._id} className="cursor-pointer hover:shadow-md transition-shadow">
                         <div className="aspect-square bg-muted rounded-t-lg overflow-hidden">
                           <img 
-                            src={product.images[0] || "/placeholder.svg"} 
-                            alt={product.name}
+                            src={
+                              typeof product.images[0] === "string"
+                                ? product.images[0]
+                                : product.images[0]?.url || "/placeholder.svg"
+                            }
+                            alt={
+                              typeof product.images[0] === "object" && product.images[0]?.alt
+                                ? product.images[0].alt
+                                : product.name
+                            }
                             className="w-full h-full object-cover"
                           />
                         </div>

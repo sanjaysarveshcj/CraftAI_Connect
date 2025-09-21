@@ -1,0 +1,26 @@
+async generateArtisanStory(details) {
+  if (!this.genAI) {
+    return this.getMockArtisanStory(details);
+  }
+
+  try {
+    const prompt = craftArtisanStoryPrompt(details);
+    const result = await this.textModel.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error generating artisan story:', error);
+    return this.getMockArtisanStory(details);
+  }
+}
+
+getMockArtisanStory(details) {
+  const specialties = details.specialties.join(', ');
+  return `With ${details.yearsOfExperience} years of dedicated experience in ${specialties}, our artisan has established themselves as a respected creator in their field. Their journey began with ${details.businessBackground}
+
+Throughout their career, they have achieved notable recognition including ${details.achievements}. Their work is distinguished by their unique approach to ${details.techniquesAndMaterials}.
+
+What truly sets them apart is their inspiring story: ${details.inspirationStory}
+
+They particularly excel in creating custom pieces that ${details.customOrderPreferences}.`;
+}

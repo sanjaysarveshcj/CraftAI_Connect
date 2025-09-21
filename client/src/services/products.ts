@@ -5,7 +5,7 @@ export interface Product {
   name: string;
   description: string;
   category: string;
-  images: string[];
+  images: { url: string; alt?: string; isPrimary?: boolean }[];
   pricing: {
     basePrice: number;
     currency: string;

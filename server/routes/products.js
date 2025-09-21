@@ -1,8 +1,122 @@
+
+// @route   POST /api/products
+// @desc    Artisan uploads a new project (product)
+// @access  Private (artisan only)
+
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Artisan = require('../models/Artisan');
+
 const { authenticate } = require('../middleware/auth');
+const upload = require('../middleware/multer');
+
+router.post('/', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    // Only allow artisans to upload
+    if (!req.user || req.user.role !== 'artisan') {
+      return res.status(403).json({ success: false, message: 'Only artisans can upload projects.' });
+    }
+
+    // Collect all product fields from req.body
+    const {
+      name,
+      description,
+      category,
+      subcategory,
+      basePrice,
+      currency,
+      priceType,
+      'dimensions.length': length,
+      'dimensions.width': width,
+      'dimensions.height': height,
+      'dimensions.unit': dimUnit,
+      'weight.value': weightValue,
+      'weight.unit': weightUnit,
+      materials,
+      colors,
+      finishes,
+      isCustomizable,
+      customOptions,
+      estimatedTime,
+      difficulty,
+      techniques,
+      tools,
+      inStock,
+      quantity,
+      isUnique,
+      tags,
+      isActive,
+      isFeatured
+    } = req.body;
+
+    // Find artisan profile
+    const artisan = await Artisan.findOne({ user: req.user._id });
+    if (!artisan) {
+      return res.status(404).json({ success: false, message: 'Artisan profile not found.' });
+    }
+
+    // Prepare image array
+    let images = [];
+    if (req.file) {
+      images.push({ url: `/uploads/products/${req.file.filename}`, alt: name, isPrimary: true });
+    }
+
+    // Create new product
+    const newProduct = new Product({
+      name,
+      description,
+      artisan: artisan._id,
+      category,
+      subcategory,
+      images,
+      pricing: {
+        basePrice,
+        currency,
+        priceType
+      },
+      specifications: {
+        dimensions: {
+          length,
+          width,
+          height,
+          unit: dimUnit
+        },
+        weight: {
+          value: weightValue,
+          unit: weightUnit
+        },
+        materials: materials ? materials.split(',').map(s => s.trim()) : [],
+        colors: colors ? colors.split(',').map(s => s.trim()) : [],
+        finishes: finishes ? finishes.split(',').map(s => s.trim()) : []
+      },
+      customization: {
+        isCustomizable: isCustomizable === 'true' || isCustomizable === true,
+        customOptions: customOptions ? customOptions.split(',').map(s => ({ name: s.trim() })) : []
+      },
+      production: {
+        estimatedTime,
+        difficulty,
+        techniques: techniques ? techniques.split(',').map(s => s.trim()) : [],
+        tools: tools ? tools.split(',').map(s => s.trim()) : []
+      },
+      inventory: {
+        inStock: inStock === 'true' || inStock === true,
+        quantity,
+        isUnique: isUnique === 'true' || isUnique === true
+      },
+      tags: tags ? tags.split(',').map(s => s.trim()) : [],
+      isActive: isActive === 'true' || isActive === true,
+      isFeatured: isFeatured === 'true' || isFeatured === true
+    });
+    await newProduct.save();
+
+    res.status(201).json({ success: true, message: 'Product uploaded successfully.', data: newProduct });
+  } catch (error) {
+    console.error('Project upload error:', error);
+    res.status(500).json({ success: false, message: 'Server error while uploading project.' });
+  }
+});
 
 // @route   GET /api/products
 // @desc    Get all products with filtering and search

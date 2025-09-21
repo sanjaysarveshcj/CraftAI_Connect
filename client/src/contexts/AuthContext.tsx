@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authAPI, User, LoginData, RegisterData } from '@/services';
+import { ArtisanProfessionalDetails } from '@/types/artisan';
 import { toast } from 'sonner';
 
 interface AuthContextType {
@@ -8,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (credentials: LoginData) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
+  updateArtisanDetails: (details: ArtisanProfessionalDetails) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -146,12 +148,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateArtisanDetails = async (details: ArtisanProfessionalDetails): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const response = await authAPI.updateArtisanDetails(details);
+      
+      if (response.success) {
+        // Update local user data
+        const updatedUser = { ...user, artisanDetails: details };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success('Profile details updated successfully!');
+        return true;
+      } else {
+        toast.error('Failed to update profile details');
+        return false;
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update profile details';
+      toast.error(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated,
     login,
     register,
+    updateArtisanDetails,
     logout,
     refreshUser,
   };
