@@ -3,9 +3,16 @@ import { Navigation } from "@/components/Navigation";
 import { CustomerPage } from "@/components/CustomerPage";
 import { ArtisanPage } from "@/components/ArtisanPage";
 import { AdminPage } from "@/components/AdminPage";
+import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<"landing" | "customer" | "artisan" | "admin">("landing");
+
+  // Use role-based redirect hook
+  useRoleRedirect({
+    onModuleChange: setActiveModule,
+    currentModule: activeModule
+  });
 
   const renderContent = () => {
     switch (activeModule) {

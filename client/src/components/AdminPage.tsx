@@ -14,8 +14,17 @@ import {
   PieChart,
   Activity
 } from "lucide-react";
+import { RoleGuard } from "./RoleGuard";
 
 export const AdminPage = () => {
+  return (
+    <RoleGuard allowedRoles={['admin']}>
+      <AdminPageContent />
+    </RoleGuard>
+  );
+};
+
+const AdminPageContent = () => {
   const mockStats = {
     totalCustomers: 247,
     totalArtisans: 89,

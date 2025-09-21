@@ -4,3 +4,9 @@ client/dist/
 server/node_modules/
 server/dist/
 server/.env
+
+# Guide files (exclude README.md)
+ARTISAN_API_DOCS.md
+GEMINI_SETUP.md
+INTEGRATION_COMPLETE.md
+ROLE_BASED_ACCESS_GUIDE.md
