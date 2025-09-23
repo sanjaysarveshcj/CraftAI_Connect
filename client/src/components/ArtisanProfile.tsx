@@ -26,7 +26,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useStartConversation } from '@/hooks/useMessages';
+import { 
+  useConversations, 
+  useStartConversation 
+} from '@/hooks/useMessages';
 import { getArtisanById } from '@/services/artisans';
 import { Artisan, Product } from '@/services';
 
@@ -34,13 +37,14 @@ interface ArtisanProfileProps {
   artisanId: string;
   isOpen: boolean;
   onClose: () => void;
-  onContactArtisan?: (artisan: Artisan) => void;
+  onContactArtisan?: (artisan: Artisan, conversationId?: string) => void;
 }
 
 export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }: ArtisanProfileProps) {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'reviews'>('overview');
   const startConversationMutation = useStartConversation();
+  const { data: conversationsData } = useConversations();
   
   // Fetch artisan data
   const { data: artisanData, isLoading, error } = useQuery({
@@ -61,6 +65,23 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
     if (!artisan) return;
 
     try {
+      // Check if there's already an existing conversation with this artisan
+      const existingConversation = conversationsData?.data?.conversations?.find(
+        (conv: any) => conv.artisan._id === artisan._id
+      );
+
+      if (existingConversation) {
+        // Use existing conversation
+        console.log('🟢 Found existing conversation, calling onContactArtisan:', !!onContactArtisan);
+        toast.success(`Opening conversation with ${artisan.user.name}`);
+        if (onContactArtisan) {
+          onContactArtisan(artisan, existingConversation._id);
+        }
+        onClose();
+        return;
+      }
+
+      // Create new conversation if none exists
       const response = await startConversationMutation.mutateAsync({
         artisanId: artisan._id,
         subject: `Inquiry about ${artisan.skills.primaryCraft}`,
@@ -69,11 +90,14 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
 
       if (response.success) {
         toast.success(`Started conversation with ${artisan.user.name}`);
-        onClose();
-        // Call the callback to open message center
+        const conversationId = response.data?.conversation?._id;
+        
+        // Call the callback to open message center with the new conversation ID
         if (onContactArtisan) {
-          onContactArtisan(artisan);
+          onContactArtisan(artisan, conversationId);
         }
+        
+        onClose();
       }
     } catch (error) {
       toast.error("Failed to start conversation");

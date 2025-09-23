@@ -119,8 +119,7 @@ export function ArtisanMessagesPage() {
     try {
       await loadMoreMessagesMutation.mutateAsync({
         conversationId: selectedConversation,
-        page: pagination.current + 1,
-        limit: 50
+        page: pagination.current + 1
       });
     } catch (error) {
       console.error('Failed to load more messages:', error);

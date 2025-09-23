@@ -271,10 +271,24 @@ router.post('/conversations/:id/messages', authenticate, async (req, res) => {
     }
 
     // Verify user is participant in conversation
+    console.log('🔍 Send message debug:');
+    console.log('- conversationId:', conversationId);
+    console.log('- req.user._id:', req.user._id);
+    console.log('- req.user.userType:', req.user.userType);
+    
     const conversation = await Conversation.findOne({
       _id: conversationId,
       'participants.user': req.user._id
     });
+
+    console.log('- conversation found:', !!conversation);
+    if (!conversation) {
+      // Let's also check what conversations this user has access to
+      const userConversations = await Conversation.find({
+        'participants.user': req.user._id
+      }).select('_id artisan customer');
+      console.log('- user conversations:', userConversations);
+    }
 
     if (!conversation) {
       return res.status(404).json({

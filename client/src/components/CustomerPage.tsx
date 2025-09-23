@@ -50,6 +50,7 @@ function CustomerPageContent() {
   const [isMessageCenterOpen, setIsMessageCenterOpen] = useState(false);
   const [selectedArtisanId, setSelectedArtisanId] = useState<string | null>(null);
   const [isArtisanProfileOpen, setIsArtisanProfileOpen] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false); // 👈 New state for expanded chat
   
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
@@ -158,9 +159,14 @@ function CustomerPageContent() {
     setIsArtisanProfileOpen(true);
   };
 
-  const handleArtisanProfileContact = (artisan: Artisan) => {
+  const handleArtisanProfileContact = (artisan: Artisan, conversationId?: string) => {
+    console.log('🔵 handleArtisanProfileContact called:', conversationId);
     setIsArtisanProfileOpen(false);
+    if (conversationId) {
+      setSelectedConversationId(conversationId);
+    }
     setIsMessageCenterOpen(true);
+    console.log('🔵 Set isMessageCenterOpen to true');
   };
 
   const handleProductClick = (product: Product) => {
@@ -378,9 +384,9 @@ function CustomerPageContent() {
                 </TabsList>
 
                 <TabsContent value="ai-chat" className="p-0 mt-0">
-                  <div className="h-96 flex flex-col">
+                  <div className="h-96 flex flex-col border rounded-lg bg-card">
                     {/* Chat Header */}
-                    <div className="p-4 border-b relative">
+                    <div className="p-4 border-b relative bg-card rounded-t-lg">
                       <h3 className="font-semibold flex items-center">
                         <Bot className="h-4 w-4 mr-2 text-primary" />
                         AI Assistant
@@ -422,47 +428,54 @@ function CustomerPageContent() {
                     {isAuthenticated && (
                       <>
                         {/* Chat Messages */}
-                        <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                        <div className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[280px]">
                           {chatHistory.map((msg) => (
                             <div
                               key={msg.id}
-                              className={`flex items-start space-x-2 ${
-                                msg.type === "user" ? "flex-row-reverse space-x-reverse" : ""
+                              className={`flex ${
+                                msg.type === "user" ? "justify-end" : "justify-start"
                               }`}
                             >
-                              <Avatar className="h-6 w-6 flex-shrink-0">
-                                {msg.type === "bot" ? (
-                                  <div className="bg-primary rounded-full flex items-center justify-center h-full">
-                                    <Bot className="h-3 w-3 text-white" />
-                                  </div>
-                                ) : (
-                                  <div className="bg-accent rounded-full flex items-center justify-center h-full">
-                                    <User className="h-3 w-3 text-white" />
-                                  </div>
+                              <div className="flex items-start space-x-2 max-w-[85%]">
+                                {msg.type === "bot" && (
+                                  <Avatar className="h-6 w-6 flex-shrink-0">
+                                    <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                      <Bot className="h-3 w-3 text-white" />
+                                    </div>
+                                  </Avatar>
                                 )}
-                              </Avatar>
-                              <div
-                                className={`flex-1 p-2 rounded-lg text-sm ${
-                                  msg.type === "user"
-                                    ? "bg-primary text-white"
-                                    : "bg-muted"
-                                }`}
-                              >
-                                <p>{msg.message}</p>
+                                <div
+                                  className={`p-2 rounded-lg text-sm break-words ${
+                                    msg.type === "user"
+                                      ? "bg-primary text-white rounded-br-none"
+                                      : "bg-muted rounded-bl-none"
+                                  }`}
+                                >
+                                  <p className="leading-relaxed">{msg.message}</p>
+                                </div>
+                                {msg.type === "user" && (
+                                  <Avatar className="h-6 w-6 flex-shrink-0">
+                                    <div className="bg-accent rounded-full flex items-center justify-center h-full">
+                                      <User className="h-3 w-3 text-white" />
+                                    </div>
+                                  </Avatar>
+                                )}
                               </div>
                             </div>
                           ))}
                           {aiChatMutation.isPending && (
-                            <div className="flex items-start space-x-2">
-                              <Avatar className="h-6 w-6 flex-shrink-0">
-                                <div className="bg-primary rounded-full flex items-center justify-center h-full">
-                                  <Bot className="h-3 w-3 text-white" />
-                                </div>
-                              </Avatar>
-                              <div className="flex-1 p-2 rounded-lg text-sm bg-muted">
-                                <div className="flex items-center gap-2">
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                  <span>Thinking...</span>
+                            <div className="flex justify-start">
+                              <div className="flex items-start space-x-2 max-w-[85%]">
+                                <Avatar className="h-6 w-6 flex-shrink-0">
+                                  <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                    <Bot className="h-3 w-3 text-white" />
+                                  </div>
+                                </Avatar>
+                                <div className="p-2 rounded-lg text-sm bg-muted rounded-bl-none">
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <span>Thinking...</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -470,20 +483,21 @@ function CustomerPageContent() {
                         </div>
 
                         {/* Chat Input */}
-                        <div className="p-4 border-t">
+                        <div className="p-4 border-t bg-card">
                           <div className="flex space-x-2">
                             <Input
                               placeholder="Ask about custom crafts..."
                               value={message}
                               onChange={(e) => setMessage(e.target.value)}
                               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                              className="flex-1 text-sm"
+                              className="flex-1 text-sm border-muted-foreground/20 focus:border-primary"
                               disabled={aiChatMutation.isPending}
                             />
                             <Button 
                               onClick={handleSendMessage} 
                               size="sm"
                               disabled={!message.trim() || aiChatMutation.isPending}
+                              className="px-3"
                             >
                               <Send className="h-3 w-3" />
                             </Button>
@@ -642,63 +656,73 @@ function CustomerPageContent() {
                       )}
                       {isAuthenticated && (
                         <>
-                          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+                          <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-background/50">
                             {chatHistory.map((msg) => (
                               <div
                                 key={msg.id}
-                                className={`flex items-start space-x-3 ${
-                                  msg.type === "user" ? "flex-row-reverse space-x-reverse" : ""
+                                className={`flex ${
+                                  msg.type === "user" ? "justify-end" : "justify-start"
                                 }`}
                               >
-                                <Avatar className="h-8 w-8 flex-shrink-0">
-                                  {msg.type === "bot" ? (
-                                    <div className="bg-primary rounded-full flex items-center justify-center h-full">
-                                      <Bot className="h-4 w-4 text-white" />
-                                    </div>
-                                  ) : (
-                                    <div className="bg-accent rounded-full flex items-center justify-center h-full">
-                                      <User className="h-4 w-4 text-white" />
-                                    </div>
+                                <div className="flex items-start space-x-3 max-w-[75%]">
+                                  {msg.type === "bot" && (
+                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                      <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                        <Bot className="h-4 w-4 text-white" />
+                                      </div>
+                                    </Avatar>
                                   )}
-                                </Avatar>
-                                <div
-                                  className={`flex-1 p-3 rounded-lg ${
-                                    msg.type === "user" ? "bg-primary text-white" : "bg-muted"
-                                  }`}
-                                >
-                                  <p>{msg.message}</p>
+                                  <div
+                                    className={`p-4 rounded-xl shadow-sm break-words ${
+                                      msg.type === "user"
+                                        ? "bg-primary text-white rounded-br-md"
+                                        : "bg-white border rounded-bl-md"
+                                    }`}
+                                  >
+                                    <p className="leading-relaxed">{msg.message}</p>
+                                  </div>
+                                  {msg.type === "user" && (
+                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                      <div className="bg-accent rounded-full flex items-center justify-center h-full">
+                                        <User className="h-4 w-4 text-white" />
+                                      </div>
+                                    </Avatar>
+                                  )}
                                 </div>
                               </div>
                             ))}
                             {aiChatMutation.isPending && (
-                              <div className="flex items-start space-x-3">
-                                <Avatar className="h-8 w-8 flex-shrink-0">
-                                  <div className="bg-primary rounded-full flex items-center justify-center h-full">
-                                    <Bot className="h-4 w-4 text-white" />
-                                  </div>
-                                </Avatar>
-                                <div className="flex-1 p-3 rounded-lg bg-muted">
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Thinking...</span>
+                              <div className="flex justify-start">
+                                <div className="flex items-start space-x-3 max-w-[75%]">
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                      <Bot className="h-4 w-4 text-white" />
+                                    </div>
+                                  </Avatar>
+                                  <div className="p-4 rounded-xl bg-white border rounded-bl-md shadow-sm">
+                                    <div className="flex items-center gap-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span>Thinking...</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             )}
                           </div>
-                          <div className="p-6 border-t">
-                            <div className="flex space-x-3">
+                          <div className="p-6 border-t bg-card">
+                            <div className="flex space-x-3 max-w-4xl mx-auto">
                               <Input
                                 placeholder="Ask about custom crafts..."
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                                className="flex-1"
+                                className="flex-1 border-muted-foreground/20 focus:border-primary"
                                 disabled={aiChatMutation.isPending}
                               />
                               <Button 
                                 onClick={handleSendMessage} 
                                 disabled={!message.trim() || aiChatMutation.isPending}
+                                className="px-6"
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
@@ -799,7 +823,11 @@ function CustomerPageContent() {
       {/* Message Center */}
       <MessageCenter
         isOpen={isMessageCenterOpen}
-        onClose={() => setIsMessageCenterOpen(false)}
+        onClose={() => {
+          setIsMessageCenterOpen(false);
+          setSelectedConversationId(null);
+        }}
+        initialConversationId={selectedConversationId}
       />
 
       {/* Artisan Profile Modal */}

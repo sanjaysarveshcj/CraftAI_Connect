@@ -38,14 +38,16 @@ import { formatDistance } from 'date-fns';
 interface MessageCenterProps {
   isOpen: boolean;
   onClose: () => void;
+  initialConversationId?: string | null;
 }
 
-export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
+export function MessageCenter({ isOpen, onClose, initialConversationId }: MessageCenterProps) {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
   
   // Get current user from auth context
   const { user } = useAuth();
@@ -68,6 +70,24 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle initial conversation selection
+  useEffect(() => {
+    console.log('🟡 MessageCenter useEffect - isOpen:', isOpen, 'initialConversationId:', initialConversationId);
+    if (isOpen && initialConversationId) {
+      setSelectedConversation(initialConversationId);
+    }
+  }, [isOpen, initialConversationId]);
+
+  // Auto-focus message input when conversation is selected
+  useEffect(() => {
+    if (selectedConversation && messageInputRef.current) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        messageInputRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedConversation]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
@@ -124,8 +144,7 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
     try {
       await loadMoreMessagesMutation.mutateAsync({
         conversationId: selectedConversation,
-        page: pagination.current + 1,
-        limit: 50
+        page: pagination.current + 1
       });
     } catch (error) {
       console.error('Failed to load more messages:', error);
@@ -138,43 +157,58 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
     
     return (
       <div key={message._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
-        <div className={`max-w-[70%] ${
-          isOwn 
-            ? 'bg-blue-600 text-white rounded-l-lg rounded-tr-lg rounded-br-sm' 
-            : 'bg-gray-100 text-gray-900 rounded-r-lg rounded-tl-lg rounded-bl-sm'
-        } p-3 shadow-sm`}>
-          {/* Sender info for non-own messages */}
+        <div className={`max-w-[75%] flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end gap-2`}>
+          {/* Avatar for non-own messages */}
           {!isOwn && (
-            <div className="flex items-center mb-2">
-              <Avatar className="w-6 h-6 mr-2">
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="text-xs">{message.sender.name[0]}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium text-gray-700">{message.sender.name}</span>
-            </div>
+            <Avatar className="w-8 h-8 mb-1 flex-shrink-0">
+              <AvatarImage src="/placeholder.svg" />
+              <AvatarFallback className="bg-gray-300 text-gray-600 text-xs font-medium">
+                {message.sender.name[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           )}
 
-          {/* Message content based on type */}
-          {message.messageType === 'order_request' && (
-            <OrderRequestMessage message={message} onRespond={handleOrderResponse} isOwn={isOwn} />
-          )}
-          
-          {message.messageType === 'order_response' && (
-            <OrderResponseMessage message={message} />
-          )}
-          
-          {message.messageType === 'text' && (
-            <div className="text-sm leading-relaxed">{message.content}</div>
-          )}
-
-          {/* Timestamp */}
-          <div className={`text-xs mt-2 ${isOwn ? 'text-blue-100' : 'text-gray-500'} text-right`}>
-            {formatDistance(new Date(message.createdAt), new Date(), { addSuffix: true })}
-            {isOwn && (
-              <span className="ml-2">
-                {message.isRead ? '✓✓' : '✓'}
+          <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+            {/* Sender name for non-own messages */}
+            {!isOwn && (
+              <span className="text-xs text-gray-500 mb-1 ml-2 font-medium">
+                {message.sender.name}
               </span>
             )}
+
+            {/* Message bubble */}
+            <div className={`px-4 py-3 rounded-2xl shadow-sm max-w-full ${
+              isOwn 
+                ? 'bg-blue-600 text-white rounded-br-md' 
+                : 'bg-white text-gray-900 border border-gray-200 rounded-bl-md'
+            }`}>
+              {/* Message content based on type */}
+              {message.messageType === 'order_request' && (
+                <OrderRequestMessage message={message} onRespond={handleOrderResponse} isOwn={isOwn} />
+              )}
+              
+              {message.messageType === 'order_response' && (
+                <OrderResponseMessage message={message} />
+              )}
+              
+              {message.messageType === 'text' && (
+                <div className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+                  {message.content}
+                </div>
+              )}
+
+              {/* Timestamp */}
+              <div className={`text-xs mt-2 ${
+                isOwn ? 'text-blue-100' : 'text-gray-500'
+              } ${isOwn ? 'text-right' : 'text-left'}`}>
+                {formatDistance(new Date(message.createdAt), new Date(), { addSuffix: true })}
+                {isOwn && (
+                  <span className="ml-2 text-blue-200">
+                    {message.isRead ? '✓✓' : '✓'}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -277,114 +311,141 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-4xl h-[600px] p-0">
         <div className="flex h-full">
-          {/* Conversations List */}
-          <div className="w-1/3 border-r">
-            <DialogHeader className="p-4 border-b">
-              <DialogTitle className="flex items-center">
-                <MessageCircle className="w-5 h-5 mr-2" />
+          {/* Left Sidebar - Conversations List */}
+          <div className="w-1/3 border-r bg-white">
+            <DialogHeader className="p-6 border-b">
+              <DialogTitle className="flex items-center text-lg font-semibold">
+                <MessageCircle className="w-5 h-5 mr-2 text-blue-600" />
                 Messages
               </DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="h-[calc(100%-80px)]">
+            <ScrollArea className="h-[calc(100%-88px)]">
               {loadingConversations ? (
-                <div className="p-4">Loading conversations...</div>
+                <div className="p-6 text-center">
+                  <div className="inline-block w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <p className="text-sm text-gray-600">Loading conversations...</p>
+                </div>
               ) : conversations.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  <MessageCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">No conversations yet</p>
+                <div className="p-6 text-center text-gray-500">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm font-medium">No conversations yet</p>
                   <p className="text-xs text-gray-400 mt-1">
                     Contact artisans to start chatting
                   </p>
                 </div>
               ) : (
-                conversations.map((conv: Conversation) => {
-                  // Determine the other participant's name based on current user's role
-                  const otherParticipantName = user?.role === 'customer' 
-                    ? conv.artisan?.businessInfo?.businessName || 'Artisan'
-                    : conv.customer?.name || 'Customer';
-                  
-                  const otherParticipantAvatar = user?.role === 'customer' 
-                    ? conv.artisan?.businessInfo?.businessName?.[0] || 'A'
-                    : conv.customer?.name?.[0] || 'C';
+                <div className="py-2">
+                  {conversations.map((conv: Conversation) => {
+                    // Determine the other participant's details
+                    const isCustomerView = user?.role === 'customer';
+                    const otherParticipant = isCustomerView 
+                      ? {
+                          name: conv.artisan?.businessInfo?.businessName || conv.artisan?.user?.name || 'Artisan',
+                          avatar: null, // Will use fallback
+                          rating: conv.artisan?.ratings?.average
+                        }
+                      : {
+                          name: conv.customer?.name || 'Customer',
+                          avatar: conv.customer?.profile?.avatar || null,
+                          rating: null
+                        };
 
-                  return (
-                    <div
-                      key={conv._id}
-                      className={`p-4 border-b cursor-pointer transition-colors duration-200 hover:bg-gray-50 ${
-                        selectedConversation === conv._id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                      }`}
-                      onClick={() => setSelectedConversation(conv._id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center flex-1 min-w-0">
-                          <Avatar className="w-12 h-12 mr-3 flex-shrink-0">
-                            <AvatarImage src="/placeholder.svg" />
-                            <AvatarFallback className="bg-blue-100 text-blue-700 font-medium">
-                              {otherParticipantAvatar}
-                            </AvatarFallback>
-                          </Avatar>
+                    return (
+                      <div
+                        key={conv._id}
+                        className={`mx-3 mb-2 p-4 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
+                          selectedConversation === conv._id 
+                            ? 'bg-blue-50 border-l-4 border-l-blue-500 shadow-sm' 
+                            : 'hover:shadow-sm'
+                        }`}
+                        onClick={() => setSelectedConversation(conv._id)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="relative flex-shrink-0">
+                            <Avatar className="w-12 h-12 ring-2 ring-white shadow-sm">
+                              <AvatarImage src={otherParticipant.avatar || "/placeholder.svg"} />
+                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-sm">
+                                {otherParticipant.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {conv.unreadCount && conv.unreadCount > 0 && (
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                                {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+                              </div>
+                            )}
+                          </div>
+                          
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate text-gray-900">
-                              {otherParticipantName}
-                            </h4>
-                            <p className="text-xs text-gray-500 truncate">{conv.subject}</p>
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-semibold text-sm text-gray-900 truncate">
+                                {otherParticipant.name}
+                              </h4>
+                              <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                                {formatDistance(new Date(conv.lastActivity), new Date(), { addSuffix: true })}
+                              </span>
+                            </div>
+                            
+                            {otherParticipant.rating && (
+                              <div className="flex items-center mb-1">
+                                <Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />
+                                <span className="text-xs text-gray-500">{otherParticipant.rating}</span>
+                              </div>
+                            )}
+                            
+                            <p className="text-xs text-gray-500 mb-1 font-medium truncate">
+                              {conv.subject}
+                            </p>
+                            
                             {conv.lastMessage && (
-                              <p className="text-xs text-gray-400 truncate mt-1">
-                                {conv.lastMessage.content}
+                              <p className="text-xs text-gray-400 truncate leading-relaxed">
+                                {conv.lastMessage.content.length > 50 
+                                  ? `${conv.lastMessage.content.substring(0, 50)}...`
+                                  : conv.lastMessage.content
+                                }
                               </p>
                             )}
                           </div>
                         </div>
-                        
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <p className="text-xs text-gray-400 mb-1">
-                            {formatDistance(new Date(conv.lastActivity), new Date(), { addSuffix: true })}
-                          </p>
-                          {conv.unreadCount && conv.unreadCount > 0 && (
-                            <Badge variant="destructive" className="text-xs">
-                              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-                            </Badge>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </ScrollArea>
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 flex flex-col">
+          {/* Right Panel - Chat Area */}
+          <div className="flex-1 flex flex-col bg-gray-50">
             {selectedConversation ? (
               <>
-                {/* Conversation Header */}
-                <div className="p-4 border-b">
+                {/* Chat Header */}
+                <div className="p-4 bg-white border-b shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       {conversation && (
                         <>
-                          <Avatar className="w-10 h-10 mr-3">
+                          <Avatar className="w-12 h-12 mr-4 ring-2 ring-white shadow-md">
                             <AvatarImage src="/placeholder.svg" />
-                            <AvatarFallback>
+                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold">
                               {user?.role === 'customer' 
-                                ? conversation.artisan?.businessInfo?.businessName?.[0] || 'A'
-                                : conversation.customer?.name?.[0] || 'C'
+                                ? (conversation.artisan?.businessInfo?.businessName?.[0] || conversation.artisan?.user?.name?.[0] || 'A')
+                                : (conversation.customer?.name?.[0] || 'C')
                               }
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-medium">
+                            <h3 className="font-semibold text-lg text-gray-900">
                               {user?.role === 'customer' 
-                                ? conversation.artisan?.businessInfo?.businessName || 'Artisan'
-                                : conversation.customer?.name || 'Customer'
+                                ? (conversation.artisan?.businessInfo?.businessName || conversation.artisan?.user?.name || 'Artisan')
+                                : (conversation.customer?.name || 'Customer')
                               }
                             </h3>
                             {user?.role === 'customer' && conversation.artisan?.ratings && (
-                              <div className="flex items-center text-sm text-gray-500">
-                                <Star className="w-3 h-3 mr-1 fill-yellow-400 text-yellow-400" />
-                                {conversation.artisan.ratings.average} ({conversation.artisan.ratings.count} reviews)
+                              <div className="flex items-center text-sm text-gray-600 mt-1">
+                                <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
+                                <span className="font-medium">{conversation.artisan.ratings.average}</span>
+                                <span className="text-gray-400 ml-1">({conversation.artisan.ratings.count} reviews)</span>
                               </div>
                             )}
                           </div>
@@ -398,8 +459,9 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
                           size="sm"
                           variant="outline"
                           onClick={() => setShowOrderDialog(true)}
+                          className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
                         >
-                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          <ShoppingCart className="w-4 h-4" />
                           Order Product
                         </Button>
                       )}
@@ -407,6 +469,7 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
                         size="sm"
                         variant="ghost"
                         onClick={() => archiveConversationMutation.mutate(selectedConversation)}
+                        className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                       >
                         <Archive className="w-4 h-4" />
                       </Button>
@@ -414,56 +477,64 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
                   </div>
                 </div>
 
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                  {loadingMessages ? (
-                    <div className="text-center">Loading messages...</div>
-                  ) : (
-                    <>
-                      {/* Load More Button */}
-                      {pagination && pagination.current < pagination.total && (
-                        <div className="text-center mb-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={handleLoadMoreMessages}
-                            disabled={loadMoreMessagesMutation.isPending}
-                          >
-                            {loadMoreMessagesMutation.isPending ? 'Loading...' : 'Load Earlier Messages'}
-                          </Button>
+                {/* Messages Area */}
+                <div className="flex-1 overflow-hidden bg-gray-50">
+                  <ScrollArea className="h-full px-6 py-4">
+                    {loadingMessages ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                          <p className="text-sm text-gray-600">Loading messages...</p>
                         </div>
-                      )}
-                      
-                      {messages.length === 0 ? (
-                        <div className="text-center text-gray-500 py-8">
-                          <div className="mb-2">No messages yet. Start the conversation!</div>
-                          <div className="text-xs text-gray-400">
-                            Debug: Conversation ID: {selectedConversation}
+                      </div>
+                    ) : (
+                      <>
+                        {/* Load More Button */}
+                        {pagination && pagination.current < pagination.total && (
+                          <div className="text-center mb-6">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleLoadMoreMessages}
+                              disabled={loadMoreMessagesMutation.isPending}
+                              className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                            >
+                              {loadMoreMessagesMutation.isPending ? (
+                                <>
+                                  <div className="inline-block w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2" />
+                                  Loading...
+                                </>
+                              ) : (
+                                'Load Earlier Messages'
+                              )}
+                            </Button>
                           </div>
-                          <div className="text-xs text-gray-400">
-                            Debug: Loading: {loadingMessages ? 'Yes' : 'No'}
+                        )}
+                        
+                        {messages.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center text-gray-500 py-8">
+                              <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                              <h4 className="font-medium text-lg mb-2">No messages yet</h4>
+                              <p className="text-sm text-gray-400">Start the conversation by sending a message below</p>
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-400">
-                            Debug: Messages array length: {messages.length}
+                        ) : (
+                          <div className="space-y-1">
+                            {messages.map(renderMessage)}
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-xs text-gray-400 mb-2">
-                            Debug: Showing {messages.length} messages
-                          </div>
-                          {messages.map(renderMessage)}
-                        </>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </>
-                  )}
-                </ScrollArea>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </>
+                    )}
+                  </ScrollArea>
+                </div>
 
                 {/* Message Input */}
-                <div className="p-4 border-t bg-gray-50">
-                  <div className="flex items-center space-x-3">
+                <div className="p-4 bg-white border-t shadow-lg">
+                  <div className="flex items-end space-x-3 max-w-4xl">
                     <Input
+                      ref={messageInputRef}
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
@@ -473,12 +544,14 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="flex-1 min-h-[44px] px-4 py-3 text-sm border-gray-300 rounded-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none transition-all duration-200"
+                      disabled={sendMessageMutation.isPending}
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="h-11 w-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex-shrink-0"
+                      size="sm"
                     >
                       {sendMessageMutation.isPending ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -487,14 +560,18 @@ export function MessageCenter({ isOpen, onClose }: MessageCenterProps) {
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Press Enter to send, Shift+Enter for new line
+                  <p className="text-xs text-gray-500 mt-2 ml-4">
+                    Press Enter to send • Shift+Enter for new line
                   </p>
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
-                Select a conversation to start messaging
+              <div className="flex-1 flex items-center justify-center bg-gray-50">
+                <div className="text-center text-gray-500 py-12">
+                  <MessageCircle className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Select a conversation</h3>
+                  <p className="text-sm text-gray-500">Choose a conversation from the sidebar to start messaging</p>
+                </div>
               </div>
             )}
           </div>
