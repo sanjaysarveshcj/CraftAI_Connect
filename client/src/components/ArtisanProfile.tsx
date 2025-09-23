@@ -41,7 +41,7 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'reviews'>('overview');
   const startConversationMutation = useStartConversation();
-
+  
   // Fetch artisan data
   const { data: artisanData, isLoading, error } = useQuery({
     queryKey: ['artisan', artisanId],
@@ -106,7 +106,7 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl h-[600px]">
+        <DialogContent className="max-w-4xl h-[600px] p-0 flex flex-col w-full h-full bg-card">
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -133,81 +133,81 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
     );
   }
 
-  return (
+   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[600px] p-0">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <DialogHeader className="p-6 pb-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={artisan.user.profile?.avatar || "/placeholder.svg"} />
-                  <AvatarFallback className="text-lg">
-                    {artisan.user.name.split(" ").map(n => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <DialogTitle className="text-2xl">{artisan.user.name}</DialogTitle>
-                  <p className="text-lg text-primary font-medium">{artisan.businessInfo.businessName}</p>
-                  <p className="text-muted-foreground">{artisan.skills.primaryCraft}</p>
-                  <div className="flex items-center mt-2 space-x-4">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="ml-1 font-medium">{artisan.ratings.average}</span>
-                      <span className="text-muted-foreground ml-1">({artisan.ratings.count} reviews)</span>
-                    </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {artisan.location.city}, {artisan.location.state}
-                    </div>
+      <DialogContent className="max-w-4xl h-[600px] p-0 flex flex-col">
+        
+        {/* Header */}
+        <DialogHeader className="p-6 pb-4 border-b">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={artisan.user.profile?.avatar || "/placeholder.svg"} />
+                <AvatarFallback className="text-lg">
+                  {artisan.user.name.split(" ").map(n => n[0]).join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <DialogTitle className="text-2xl">{artisan.user.name}</DialogTitle>
+                <p className="text-lg text-primary font-medium">{artisan.businessInfo.businessName}</p>
+                <p className="text-muted-foreground">{artisan.skills.primaryCraft}</p>
+                <div className="flex items-center mt-2 space-x-4">
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                    <span className="ml-1 font-medium">{artisan.ratings.average}</span>
+                    <span className="text-muted-foreground ml-1">({artisan.ratings.count} reviews)</span>
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {artisan.location.city}, {artisan.location.state}
                   </div>
                 </div>
               </div>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-col space-y-2">
-                <Button 
-                  onClick={handleStartConversation}
-                  disabled={!isAuthenticated || startConversationMutation.isPending}
-                  className="bg-gradient-primary"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  {startConversationMutation.isPending ? "Starting..." : "Start Chat"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleQuickContact}
-                  disabled={!isAuthenticated}
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Quick Contact
-                </Button>
-              </div>
             </div>
-          </DialogHeader>
-
-          {/* Tab Navigation */}
-          <div className="px-6 border-b">
-            <nav className="flex space-x-8">
-              {['overview', 'products', 'reviews'].map((tab) => (
-                <button
-                  key={tab}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                  onClick={() => setActiveTab(tab as any)}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </nav>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col space-y-2">
+              <Button 
+                onClick={handleStartConversation}
+                disabled={!isAuthenticated || startConversationMutation.isPending}
+                className="bg-gradient-primary"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                {startConversationMutation.isPending ? "Starting..." : "Start Chat"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleQuickContact}
+                disabled={!isAuthenticated}
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Quick Contact
+              </Button>
+            </div>
           </div>
+        </DialogHeader>
 
-          {/* Content */}
-          <ScrollArea className="flex-1 p-6">
+        {/* Tab Navigation */}
+        <div className="px-6 border-b">
+          <nav className="flex space-x-8">
+            {['overview', 'products', 'reviews'].map((tab) => (
+              <button
+                key={tab}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setActiveTab(tab as 'overview' | 'products' | 'reviews')}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="flex-1 p-6">
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 {/* Artisan Story */}
@@ -347,7 +347,7 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
                 )}
               </div>
             )}
-
+            
             {activeTab === 'products' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -362,7 +362,7 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((product: Product) => (
+                    {products.map((product) => (
                       <Card key={product._id} className="cursor-pointer hover:shadow-md transition-shadow">
                         <div className="aspect-square bg-muted rounded-t-lg overflow-hidden">
                           <img 
@@ -393,7 +393,7 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
                 )}
               </div>
             )}
-
+            
             {activeTab === 'reviews' && (
               <div className="space-y-4">
                 <div className="text-center py-8">
@@ -402,33 +402,32 @@ export function ArtisanProfile({ artisanId, isOpen, onClose, onContactArtisan }:
                 </div>
               </div>
             )}
-          </ScrollArea>
+        </ScrollArea>
 
-          {/* Footer Actions */}
-          <div className="border-t p-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                {!isAuthenticated && "Sign in to contact this artisan"}
-              </div>
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={onClose}>
-                  Close
-                </Button>
-                <Button 
-                  onClick={handleStartConversation}
-                  disabled={!isAuthenticated || startConversationMutation.isPending}
-                  className="bg-gradient-primary"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
-              </div>
+        {/* Footer Actions */}
+        <div className="border-t p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {!isAuthenticated && "Sign in to contact this artisan"}
+            </div>
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+              <Button 
+                onClick={handleStartConversation}
+                disabled={!isAuthenticated || startConversationMutation.isPending}
+                className="bg-gradient-primary"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send Message
+              </Button>
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
 
 export default ArtisanProfile;

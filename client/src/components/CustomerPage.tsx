@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Bot, User, MapPin, Star, MessageCircle, Lock, Heart, ShoppingCart, Search, Filter, Loader2, Sparkles, Eye } from "lucide-react";
+import { 
+  Send, Bot, User, MapPin, Star, MessageCircle, Lock, Heart, ShoppingCart, Search, Filter, Loader2, Sparkles, Eye, Maximize2, X 
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts, useProductCategories } from "@/hooks/useProducts";
@@ -20,6 +22,7 @@ import { MessageCenter } from './MessageCenter';
 import { ArtisanProfile } from './ArtisanProfile';
 import { RoleGuard } from './RoleGuard';
 import { CustomerArtisansList } from './CustomerArtisansList';
+import { motion, AnimatePresence } from "framer-motion";
 
 type ChatMessage = {
   id: number;
@@ -47,6 +50,7 @@ function CustomerPageContent() {
   const [isMessageCenterOpen, setIsMessageCenterOpen] = useState(false);
   const [selectedArtisanId, setSelectedArtisanId] = useState<string | null>(null);
   const [isArtisanProfileOpen, setIsArtisanProfileOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // 👈 New state for expanded chat
   
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     {
@@ -376,7 +380,7 @@ function CustomerPageContent() {
                 <TabsContent value="ai-chat" className="p-0 mt-0">
                   <div className="h-96 flex flex-col">
                     {/* Chat Header */}
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b relative">
                       <h3 className="font-semibold flex items-center">
                         <Bot className="h-4 w-4 mr-2 text-primary" />
                         AI Assistant
@@ -390,9 +394,18 @@ function CustomerPageContent() {
                       <p className="text-sm text-muted-foreground">
                         {isAuthenticated 
                           ? "Get intelligent craft recommendations from Google's AI" 
-                          : "Sign in to use AI chat"
-                        }
+                          : "Sign in to use AI chat"}
                       </p>
+
+                      {/* 👇 Expand Button */}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setIsExpanded(true)}
+                        className="h-8 w-8 absolute right-4 top-1"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
                     </div>
 
                     {!isAuthenticated && (
@@ -564,6 +577,218 @@ function CustomerPageContent() {
         </div>
       </div>
       
+      {/* 👇 Fullscreen Chat Modal with Zoom Animation */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setIsExpanded(false)}
+          >
+            <motion.div
+              layout
+              className="relative w-full max-w-4xl h-[80vh] bg-card border rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2 z-10 h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(false);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+
+              {/* The main Card component that contains everything */}
+              <Card className="h-full border-0 rounded-2xl">
+                <Tabs defaultValue="ai-chat" className="w-full h-full flex flex-col">
+                  {/* TabsList section is styled as a header within the card */}
+                  <div className="bg-muted px-8 py-6 border-b border-muted-200">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="ai-chat" className="flex items-center gap-1">
+                        <Bot className="h-4 w-4" />
+                        AI Chat
+                      </TabsTrigger>
+                      <TabsTrigger value="design" className="flex items-center gap-1">
+                        <Sparkles className="h-4 w-4" />
+                        Design
+                      </TabsTrigger>
+                      <TabsTrigger value="artisans" className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        Artisans
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  {/* AI Chat Tab Content - The main chat area */}
+                  <TabsContent value="ai-chat" className="h-full flex-1 flex flex-col p-0 mt-0">
+                    <div className="flex-1 flex flex-col justify-end overflow-hidden">
+                      {!isAuthenticated && (
+                        <div className="flex-1 flex items-center justify-center p-6">
+                          <div className="text-center">
+                            <Lock className="h-16 w-16 mx-auto mb-6 text-muted-foreground" />
+                            <p className="text-muted-foreground text-lg">
+                              Please sign in to use the AI chat assistant
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {isAuthenticated && (
+                        <>
+                          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+                            {chatHistory.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`flex items-start space-x-3 ${
+                                  msg.type === "user" ? "flex-row-reverse space-x-reverse" : ""
+                                }`}
+                              >
+                                <Avatar className="h-8 w-8 flex-shrink-0">
+                                  {msg.type === "bot" ? (
+                                    <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                      <Bot className="h-4 w-4 text-white" />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-accent rounded-full flex items-center justify-center h-full">
+                                      <User className="h-4 w-4 text-white" />
+                                    </div>
+                                  )}
+                                </Avatar>
+                                <div
+                                  className={`flex-1 p-3 rounded-lg ${
+                                    msg.type === "user" ? "bg-primary text-white" : "bg-muted"
+                                  }`}
+                                >
+                                  <p>{msg.message}</p>
+                                </div>
+                              </div>
+                            ))}
+                            {aiChatMutation.isPending && (
+                              <div className="flex items-start space-x-3">
+                                <Avatar className="h-8 w-8 flex-shrink-0">
+                                  <div className="bg-primary rounded-full flex items-center justify-center h-full">
+                                    <Bot className="h-4 w-4 text-white" />
+                                  </div>
+                                </Avatar>
+                                <div className="flex-1 p-3 rounded-lg bg-muted">
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Thinking...</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-6 border-t">
+                            <div className="flex space-x-3">
+                              <Input
+                                placeholder="Ask about custom crafts..."
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                                className="flex-1"
+                                disabled={aiChatMutation.isPending}
+                              />
+                              <Button 
+                                onClick={handleSendMessage} 
+                                disabled={!message.trim() || aiChatMutation.isPending}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Design Tab Content - The rest of the tabs can use this same pattern */}
+                  <TabsContent value="design" className="p-0 mt-0 flex-1">
+                    <div className="h-full flex flex-col">
+                      <div className="p-6 border-b">
+                        <h3 className="text-xl font-semibold flex items-center">
+                          <Sparkles className="h-5 w-5 mr-2 text-primary" />
+                          AI Design Generator
+                        </h3>
+                        <p className="text-muted-foreground mt-1">Create custom designs with AI</p>
+                      </div>
+                      <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                        {designResult ? (
+                          <DesignResults
+                            result={designResult}
+                            onContactArtisan={(artisanId) => {
+                              if (!isAuthenticated) {
+                                toast.error("Please login to contact artisans");
+                                return;
+                              }
+                              const artisan = artisans.find(a => a._id === artisanId);
+                              if (artisan) {
+                                handleArtisanClick(artisan);
+                              }
+                            }}
+                            onStartChat={() => {
+                              const chatTab = document.querySelector('[value="ai-chat"]') as HTMLElement;
+                              chatTab?.click();
+                            }}
+                          />
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="text-center py-12">
+                              <Sparkles className="h-16 w-16 text-primary/20 mx-auto mb-6" />
+                              <h4 className="text-xl font-medium mb-3">Generate Your Dream Design</h4>
+                              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                                Describe your vision and let AI help you create the perfect custom craft
+                              </p>
+                              <Button 
+                                onClick={() => setIsDesignModalOpen(true)}
+                                size="lg"
+                                disabled={!isAuthenticated}
+                              >
+                                <Sparkles className="h-5 w-5 mr-2" />
+                                Start Design Generation
+                                {!isAuthenticated && <Lock className="h-5 w-5 ml-2" />}
+                              </Button>
+                              {!isAuthenticated && (
+                                <p className="text-sm text-muted-foreground mt-3">
+                                  Login required to generate designs
+                                </p>
+                              )}
+                            </div>
+                            <div className="bg-muted/30 rounded-lg p-6 max-w-md mx-auto">
+                              <h5 className="font-medium mb-3">✨ How it works:</h5>
+                              <ul className="text-sm text-muted-foreground space-y-2">
+                                <li>• Describe your ideal custom product in detail</li>
+                                <li>• AI generates a design concept and suggestions</li>
+                                <li>• Get matched with artisans who can create it</li>
+                                <li>• Chat directly with recommended craftspeople</li>
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Artisans Tab Content */}
+                  <TabsContent value="artisans" className="p-0 mt-0 flex-1">
+                    <div className="h-full px-6 py-4">
+                      <CustomerArtisansList />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Design Generation Modal */}
       <DesignGenerationModal
         isOpen={isDesignModalOpen}
