@@ -477,7 +477,7 @@ export function MessageCenter({ isOpen, onClose, initialConversationId }: Messag
                   </div>
                 </div>
 
-                {/* Messages Area */}
+                {/* Messages Area with Dynamic Input */}
                 <div className="flex-1 overflow-hidden bg-gray-50">
                   <ScrollArea className="h-full px-6 py-4">
                     {loadingMessages ? (
@@ -512,58 +512,64 @@ export function MessageCenter({ isOpen, onClose, initialConversationId }: Messag
                         )}
                         
                         {messages.length === 0 ? (
-                          <div className="flex items-center justify-center h-full">
+                          <div className="flex items-center justify-center h-full min-h-[300px]">
                             <div className="text-center text-gray-500 py-8">
                               <MessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                               <h4 className="font-medium text-lg mb-2">No messages yet</h4>
-                              <p className="text-sm text-gray-400">Start the conversation by sending a message below</p>
+                              <p className="text-sm text-gray-400">Start the conversation by typing a message below</p>
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-1">
+                          <div className="space-y-1 mb-4">
                             {messages.map(renderMessage)}
                           </div>
                         )}
+
+                        {/* Message Input - Dynamic Position After Last Message */}
+                        <div className="mt-4 mb-6">
+                          <div className="bg-white border border-gray-200 rounded-lg shadow-md p-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex-1">
+                                <Input
+                                  ref={messageInputRef}
+                                  placeholder="Type your message..."
+                                  value={newMessage}
+                                  onChange={(e) => setNewMessage(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleSendMessage();
+                                    }
+                                  }}
+                                  className="w-full h-[48px] px-4 py-3 text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                  disabled={sendMessageMutation.isPending}
+                                />
+                              </div>
+                              <Button
+                                onClick={handleSendMessage}
+                                disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                                className="h-[48px] w-[48px] rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-md hover:shadow-lg transition-all duration-200 flex-shrink-0"
+                                size="sm"
+                              >
+                                {sendMessageMutation.isPending ? (
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Send className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 px-1">
+                              Press Enter to send • Shift+Enter for new line
+                            </p>
+                          </div>
+                        </div>
+
                         <div ref={messagesEndRef} />
                       </>
                     )}
                   </ScrollArea>
                 </div>
 
-                {/* Message Input */}
-                <div className="p-4 bg-white border-t shadow-lg">
-                  <div className="flex items-end space-x-3 max-w-4xl">
-                    <Input
-                      ref={messageInputRef}
-                      placeholder="Type your message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      className="flex-1 min-h-[44px] px-4 py-3 text-sm border-gray-300 rounded-full focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none transition-all duration-200"
-                      disabled={sendMessageMutation.isPending}
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                      className="h-11 w-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex-shrink-0"
-                      size="sm"
-                    >
-                      {sendMessageMutation.isPending ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 ml-4">
-                    Press Enter to send • Shift+Enter for new line
-                  </p>
-                </div>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center bg-gray-50">
