@@ -19,6 +19,7 @@ declare global {
         "camera-controls"?: boolean;
         ar?: boolean;
         "shadow-intensity"?: string | number;
+        loading?: string;
         style?: React.CSSProperties;
       };
     }
@@ -37,6 +38,10 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<'generate' | 'select-artisan'>('generate');
+  const [artisans, setArtisans] = useState<any[]>([]);
+  const [loadingArtisans, setLoadingArtisans] = useState(false);
+  const [designId, setDesignId] = useState<string | null>(null);
 
   const styles = ["traditional", "modern", "fusion", "minimalist", "ornate", "rustic", "contemporary"];
 
@@ -57,18 +62,38 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
       
       // Generate 3D model using Meshifi
       const response = await api.post("/3d/generate", payload);
+      
+      console.log('Full response:', response.data);
+      
       const url = response.data.data.modelUrl;
+      const isDemo = response.data.data.isDemo;
+      const message = response.data.data.message;
       
       console.log('Model generated:', url);
-      setModelUrl(url);
+      console.log('Is demo model:', isDemo);
+      console.log('Message:', message);
       
-      // Call the onDesignGenerated callback if provided
-      if (onDesignGenerated) {
-        onDesignGenerated(response.data.data);
+      if (!url) {
+        throw new Error('No model URL returned from server');
       }
+      
+      // Set the model URL regardless of whether it's demo or real
+      setModelUrl(url);
+      setDesignId(response.data.data.designId);
+      
+      // Show info if it's a demo model
+      if (isDemo) {
+        console.warn('Using demo model:', message);
+      }
+      
+      // Don't call onDesignGenerated here - let user view and decide
+      // The callback will be called when they manually close or take action
     } catch (err: any) {
       console.error("3D Generation Error:", err);
-      setError(err.response?.data?.message || "Failed to generate 3D model. Please try again.");
+      const errorMessage = err.response?.data?.message || "Failed to generate 3D model. Please try again.";
+      const suggestion = err.response?.data?.suggestion || "";
+      setError(errorMessage + (suggestion ? `\n\n${suggestion}` : ""));
+      // setError(err.response?.data?.message || err.message || "Failed to generate 3D model. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -79,20 +104,108 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
     await generateModel();
   };
 
+  const fetchArtisans = async () => {
+    setLoadingArtisans(true);
+    try {
+      const response = await api.get('/artisans');
+      setArtisans(response.data.data.artisans || []);
+      setStep('select-artisan');
+    } catch (err: any) {
+      console.error('Error fetching artisans:', err);
+      setError('Failed to load artisans. Please try again.');
+    } finally {
+      setLoadingArtisans(false);
+    }
+  };
+
+  const handleSelectArtisan = async (artisan: any) => {
+    try {
+      // Navigate to message center with artisan and design info
+      if (onDesignGenerated) {
+        onDesignGenerated({
+          modelUrl,
+          designId,
+          artisan,
+          prompt,
+          redirectToChat: true
+        });
+      }
+      onClose();
+    } catch (err: any) {
+      console.error('Error selecting artisan:', err);
+      setError('Failed to proceed. Please try again.');
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            AI Design Generator
-            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-              Powered by TripO3D
-            </span>
+            {step === 'generate' ? '3D Model Generator' : 'Choose Your Artisan'}
+            {step === 'generate' && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                Powered by Meshifi AI
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleGenerate} className="space-y-4">
+        {step === 'select-artisan' ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select an artisan to discuss your 3D model and place an order
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
+              {artisans.map((artisan) => (
+                <div
+                  key={artisan._id}
+                  className="border rounded-lg p-4 hover:border-primary cursor-pointer transition-all hover:shadow-md"
+                  onClick={() => handleSelectArtisan(artisan)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold">
+                      {artisan.user?.name?.charAt(0) || 'A'}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{artisan.user?.name || 'Artisan'}</h3>
+                      <p className="text-sm text-primary">{artisan.businessInfo?.businessName}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center text-yellow-500">
+                          <span className="text-sm">⭐ {artisan.ratings?.average || 0}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          ({artisan.ratings?.count || 0} reviews)
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                        {artisan.businessInfo?.description || 'Skilled artisan'}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {artisan.skills?.specialties?.slice(0, 3).map((specialty: string, idx: number) => (
+                          <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            {specialty}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setStep('generate')}
+                className="flex-1"
+              >
+                ← Back to Model
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleGenerate} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="prompt">Design Description</Label>
             <Textarea
@@ -121,15 +234,17 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
             </Select>
           </div>
 
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              🤖 <strong>Powered by Meshifi AI:</strong> Describe your vision in detail. The AI will generate a 3D model based on your prompt.
-            </p>
-          </div>
+          {!modelUrl && (
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                🤖 <strong>Powered by Meshifi AI:</strong> Describe your vision in detail. The AI will generate a high-quality 3D model that you can view, rotate, and download.
+              </p>
+            </div>
+          )}
 
           {error && (
-            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
-              {error}
+            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md border border-red-200">
+              ⚠️ {error}
             </div>
           )}
 
@@ -162,18 +277,75 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
             </Button>
           </div>
         </form>
+        )}
 
-        {modelUrl && (
-          <div className="mt-4">
-            <model-viewer
-              src={modelUrl}
-              alt="Generated 3D Model"
-              auto-rotate
-              camera-controls
-              ar
-              shadow-intensity="1"
-              style={{ width: "100%", height: "400px", borderRadius: "12px" }}
-            />
+        {step === 'generate' && modelUrl && (
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-lg font-semibold">✨ Your Generated 3D Model</h4>
+              <div className="flex gap-2">
+                <a 
+                  href={modelUrl} 
+                  download 
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download GLB
+                </a>
+              </div>
+            </div>
+            <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative shadow-lg">
+              <model-viewer
+                key={modelUrl}
+                src={modelUrl}
+                alt="Generated 3D Model"
+                auto-rotate={true}
+                camera-controls={true}
+                ar={true}
+                shadow-intensity={1}
+                loading="eager"
+                style={{ 
+                  width: "100%", 
+                  height: "500px",
+                  backgroundColor: "transparent"
+                }}
+              />
+              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm">
+                🖱️ Drag to rotate • 🔍 Scroll to zoom • 📱 AR enabled
+              </div>
+            </div>
+            <div className="text-center">
+              <Button 
+                onClick={fetchArtisans}
+                className="bg-primary"
+                disabled={loadingArtisans}
+              >
+                {loadingArtisans ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Artisans...
+                  </>
+                ) : (
+                  <>
+                    ✓ Use This Model & Choose Artisan
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'generate' && isGenerating && (
+          <div className="mt-4 flex items-center justify-center p-8 border rounded-lg bg-gray-50">
+            <div className="text-center space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-sm text-muted-foreground">Generating your 3D model...</p>
+              <p className="text-xs text-muted-foreground">This may take a few moments</p>
+            </div>
           </div>
         )}
       </DialogContent>

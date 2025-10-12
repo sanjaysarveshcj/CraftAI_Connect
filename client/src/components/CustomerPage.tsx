@@ -193,10 +193,46 @@ function CustomerPageContent() {
     addToWishlistMutation.mutate(product._id);
   };
 
-  const handleDesignGenerated = (result: any) => {
+  const handleDesignGenerated = async (result: any) => {
+    console.log('🟢 handleDesignGenerated called with:', result);
     setDesignResult(result);
-    setIsDesignModalOpen(false);
-    toast.success("Design generated successfully!");
+    
+    // If redirectToChat is true, start conversation with selected artisan
+    if (result.redirectToChat && result.artisan) {
+      setIsDesignModalOpen(false);
+      
+      try {
+        // Create initial message with design details
+        const initialMessage = `Hello ${result.artisan.user.name}! 
+
+I've created a 3D design using our AI generator and I'd like to discuss it with you:
+
+📝 Design Prompt: "${result.prompt}"
+🎨 Design ID: ${result.designId}
+🔗 3D Model: ${result.modelUrl}
+
+I'm interested in having this custom piece created. Could you review the model and let me know if this is something you can craft?`;
+
+        const response = await startConversationMutation.mutateAsync({
+          artisanId: result.artisan._id,
+          subject: `Custom 3D Design Order Request`,
+          initialMessage: initialMessage
+        });
+
+        if (response.success) {
+          // Set the conversation ID and open message center
+          setSelectedConversationId(response.data.conversation._id);
+          setIsMessageCenterOpen(true);
+          toast.success(`Started conversation with ${result.artisan.user.name}`);
+        }
+      } catch (error) {
+        toast.error("Failed to start conversation with artisan");
+        console.error('Start conversation error:', error);
+      }
+    } else {
+      setIsDesignModalOpen(false);
+      toast.success("Design generated successfully!");
+    }
   };
 
   return (
