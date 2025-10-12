@@ -2,10 +2,12 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? 'https://craftai-connect.onrender.com/api'
+    : 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
 // Request interceptor to add auth token

@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
-import "@google/model-viewer"; // Make sure model-viewer is installed
-import axios from "axios";
+import "@google/model-viewer";
+import api from "@/services/api";
 
 // Add TypeScript support for <model-viewer>
 declare global {
@@ -35,102 +34,49 @@ interface DesignGenerationModalProps {
 export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: DesignGenerationModalProps) {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("traditional");
-  const [category, setCategory] = useState("Art");
-
-  const [taskId, setTaskId] = useState<string | null>(null);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "pending" | "succeeded" | "failed">("idle");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const styles = ["traditional", "modern", "fusion", "minimalist", "ornate", "rustic", "contemporary"];
-  const categories = ["Ceramics", "Furniture", "Textiles", "Leather Goods", "Glass Art", "Kitchenware", "Jewelry", "Home Decor", "Clothing", "Art"];
 
-  const submitTask = async () => {
+  const generateModel = async () => {
     if (!prompt.trim()) return;
 
-    setStatus("pending");
+    setIsGenerating(true);
     setError(null);
     setModelUrl(null);
 
     try {
       const payload = {
-        prompt,
-        model_version: "v3.0-20250812",
-        texture: true,
-        pbr: true
+        prompt: `${style} style ${prompt}`,
+        textured: false // Use untextured for faster and more reliable generation
       };
 
-      // Call your backend API instead of Tripo3D directly
-      const token = localStorage.getItem('token');
-      const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      };
-
-      const response = await axios.post("/api/tripo/task", payload, { headers });
-      const newTaskId = response.data.data.task_id;
-      setTaskId(newTaskId);
-
-      // Start polling for task completion
-      pollTask(newTaskId);
+      console.log('Sending generation request:', payload);
+      
+      // Generate 3D model using Meshifi
+      const response = await api.post("/3d/generate", payload);
+      const url = response.data.data.modelUrl;
+      
+      console.log('Model generated:', url);
+      setModelUrl(url);
+      
+      // Call the onDesignGenerated callback if provided
+      if (onDesignGenerated) {
+        onDesignGenerated(response.data.data);
+      }
     } catch (err: any) {
-      console.error("TripO3D Error:", err);
-      setError(err.response?.data?.message || "Failed to submit task. Please try again.");
-      setStatus("failed");
+      console.error("3D Generation Error:", err);
+      setError(err.response?.data?.message || "Failed to generate 3D model. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const pollTask = async (taskId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 
-        "Authorization": `Bearer ${token}` 
-      };
-      let attempts = 0;
-
-      const interval = setInterval(async () => {
-        attempts++;
-        try {
-          const response = await axios.get(`/api/tripo/task/${taskId}`, { headers });
-          const data = response.data.data;
-
-          if (data.status === "SUCCEEDED") {
-            setModelUrl(data.model_urls.glb);
-            setStatus("succeeded");
-            clearInterval(interval);
-            
-            // Call the onDesignGenerated callback if provided
-            if (onDesignGenerated) {
-              onDesignGenerated(data);
-            }
-          } else if (data.status === "FAILED") {
-            setError(data.task_error?.message || "Task failed");
-            setStatus("failed");
-            clearInterval(interval);
-          }
-
-          if (attempts > 20) {
-            setError("Task timed out");
-            setStatus("failed");
-            clearInterval(interval);
-          }
-        } catch (err: any) {
-          console.error("Poll Error:", err);
-          setError("Failed to poll task status");
-          setStatus("failed");
-          clearInterval(interval);
-        }
-      }, 5000);
-    } catch (err: any) {
-      console.error("Poll Setup Error:", err);
-      setError("Failed to start polling");
-      setStatus("failed");
-    }
-  };
-
-  const handleGenerate = (e: React.FormEvent) => {
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    submitTask();
+    await generateModel();
   };
 
   return (
@@ -159,45 +105,33 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="style">Style</Label>
-              <Select value={style} onValueChange={setStyle}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select style" />
-                </SelectTrigger>
-                <SelectContent>
-                  {styles.map((styleOption) => (
-                    <SelectItem key={styleOption} value={styleOption}>
-                      {styleOption.charAt(0).toUpperCase() + styleOption.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((categoryOption) => (
-                    <SelectItem key={categoryOption} value={categoryOption}>
-                      {categoryOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="style">Style</Label>
+            <Select value={style} onValueChange={setStyle}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                {styles.map((styleOption) => (
+                  <SelectItem key={styleOption} value={styleOption}>
+                    {styleOption.charAt(0).toUpperCase() + styleOption.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              🤖 <strong>Powered by TripO3D:</strong> Describe your vision in detail. The AI will generate a 3D model based on your prompt.
+              🤖 <strong>Powered by Meshifi AI:</strong> Describe your vision in detail. The AI will generate a 3D model based on your prompt.
             </p>
           </div>
+
+          {error && (
+            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
+              {error}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <Button 
@@ -205,33 +139,31 @@ export function DesignGenerationModal({ isOpen, onClose, onDesignGenerated }: De
               variant="outline" 
               onClick={onClose} 
               className="flex-1"
-              disabled={status === "pending"}
+              disabled={isGenerating}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               className="flex-1" 
-              disabled={status === "pending" || !prompt.trim()}
+              disabled={isGenerating || !prompt.trim()}
             >
-              {status === "pending" ? (
+              {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  Generating 3D Model...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Design
+                  Generate 3D Model
                 </>
               )}
             </Button>
           </div>
         </form>
 
-        {error && <p className="text-red-600 mt-4">{error}</p>}
-
-        {status === "succeeded" && modelUrl && (
+        {modelUrl && (
           <div className="mt-4">
             <model-viewer
               src={modelUrl}

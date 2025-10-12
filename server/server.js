@@ -35,7 +35,7 @@ const artisanDashboardRoutes = require("./routes/artisanDashboard");
 const customerRoutes = require("./routes/customer");
 const messagesRoutes = require("./routes/messages");
 const aiRoutes = require("./routes/ai");
-const tripoRoutes = require("./routes/tripo");
+const threeDRoutes = require("./routes/3d");
 
 // Use routes
 app.use("/api/auth", authRoutes);
@@ -46,7 +46,7 @@ app.use("/api/artisan", artisanDashboardRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/messages", messagesRoutes);
 app.use("/api/ai", aiRoutes);
-app.use("/api/tripo", tripoRoutes);
+app.use("/api/3d", threeDRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

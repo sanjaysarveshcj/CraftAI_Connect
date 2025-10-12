@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 
 // Tripo3D API Configuration
 const TRIPO_API_KEY = process.env.TRIPO_API_KEY;
 const TRIPO_BASE_URL = 'https://api.tripo3d.ai/v2/openapi';
 
 // Submit a new text-to-3D task
-router.post('/task', auth, async (req, res) => {
+router.post('/task', authenticate, async (req, res) => {
   try {
     const { prompt, model_version = 'v3.0-20250812', texture = true, pbr = true } = req.body;
 
@@ -56,7 +56,7 @@ router.post('/task', auth, async (req, res) => {
 });
 
 // Poll task status
-router.get('/task/:taskId', auth, async (req, res) => {
+router.get('/task/:taskId', authenticate, async (req, res) => {
   try {
     const { taskId } = req.params;
 
@@ -88,7 +88,7 @@ router.get('/task/:taskId', auth, async (req, res) => {
 });
 
 // Cancel a task
-router.delete('/task/:taskId', auth, async (req, res) => {
+router.delete('/task/:taskId', authenticate, async (req, res) => {
   try {
     const { taskId } = req.params;
 
